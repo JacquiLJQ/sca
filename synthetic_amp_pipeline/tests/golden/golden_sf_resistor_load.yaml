@@ -1,0 +1,59 @@
+case_id: golden_sf_resistor_load
+topology: nmos_source_follower_resistor_source_load
+computed_by: Jacqui
+computed_date: 4/18/2026
+
+given:
+  VDD: 1.8
+  Rs_load: 10000 # resistor at source terminal, not signal source impedance
+  VG_DC: 1.2
+  Vth: 0.5
+  kn: 1e-3
+  lambda: 0.02
+  gmb: 0
+  body_note: "body tied to source (VBS=0), body effect disabled"
+  Cgs: 2e-14
+  Cgd: 5e-15
+  CL: 1e-13
+  Rs_source: 0
+
+qpoint_method: "first-order: lambda ignored for Q-point solve, included in ro"
+
+expected:
+  qpoint:
+    ID: 4.127e-5 # solve quadratic
+    VS: 0.4127 # ID * Rs_load
+    VGS: 0.7873 # VG - VS
+    VOV: 0.2873 # VGS - Vth
+    VD: 1.8
+    VDS: 1.3873 # VDD - VS
+    region: saturation
+    saturation_check_passes: true
+
+  small_signal:
+    gm: 2.873e-4 # kn * VOV
+    ro: 1.2115e+6 # 1 / (lambda * ID)
+    gmb: 0
+    one_over_gm: 3480.7 # 1/gm, helpful because it dominates Rout
+
+  low_frequency:
+    Rin: null
+    Rin_note: "infinite: MOSFET gate"
+    Req_for_av: 9918.1 # Rs_load || ro
+    Av: 0.7402 # gm*Req / (1 + gm*Req)
+    Av_dB: -2.61 # 20*log10(|Av|), note Av < 1 so Av_dB < 0
+    sign: non_inverting
+    Rout: 2576.5 # Rs_load || ro || (1/gm)
+    Rout_note: "dominated by 1/gm (source follower characteristic)"
+
+  high_frequency:
+    Cin_total: null
+    Cin_note: "no input RC: Rs_source=0"
+    Cout_total: 1e-13
+    Cout_simplification_note: "Cgs bootstrap effect neglected; only CL considered"
+    p1_rad_per_s: 3.88e+9
+    p1_Hz: 6.18e+8
+    dominant_pole: "p1 (output node)"
+    zeros: []
+
+tolerance: 0.05

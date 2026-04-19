@@ -1,0 +1,52 @@
+case_id: golden_cs_ideal_current_source_load
+topology: nmos_common_source_ideal_current_source_load
+computed_by: Jacqui
+computed_date: 4/18/2026
+
+given:
+  VDD: 1.8
+  Iload: 8e-5 # ideal current source, forces ID = 80 uA from VDD into vo
+  Vth: 0.5
+  kn: 1e-3
+  lambda: 0.02
+  Cgs: 2e-14
+  Cgd: 5e-15
+  CL: 1e-13
+  Rs: 0
+  # Additional given: VDS is fixed by assuming VG_DC is chosen to produce this
+  VDS_target: 0.9
+
+expected:
+  qpoint:
+    ID: 8e-5
+    VDS: 0.9
+    VS: 0
+    VOV: 0.3964 # reverse-solve from ID = 0.5*kn*VOV^2 * (1 + lambda*VDS)
+    VGS: 0.8964 # VOV + Vth
+    VG_DC: 0.8964 # = VGS since VS = 0
+    VD: 0.9 # = VDS since VS = 0
+    region: saturation
+    saturation_check_passes: true # VDS >= VOV ?
+
+  small_signal:
+    gm: 3.964e-4 # ≈ kn * VOV
+    ro: 6.25e+5 # = 1 / (lambda * ID)
+
+  low_frequency:
+    Rin: null
+    Rin_note: "infinite: MOSFET gate"
+    Rout: 6.25e+5 # = ro (current source load has infinite small-signal resistance)
+    Av: -247.75 # = -gm * ro (intrinsic gain)
+    Av_dB: 47.88
+    sign: inverting
+
+  high_frequency:
+    Cin_total: null
+    Cin_note: "no input RC: Rs=0, ideal voltage source drive"
+    Cout_total: 1.0502e-13 # CL + Cgd*(1 - 1/Av), exact
+    p1_rad_per_s: 1.52e+7
+    p1_Hz: 2.424e+6
+    dominant_pole: "p1 (output node)"
+    zeros: []
+
+tolerance: 0.05

@@ -227,6 +227,51 @@ Each column has exactly one `1`. The SPICE netlist and all graph representations
 
 ---
 
+## 3A. Numerical Unit Conventions
+
+All numerical values in golden YAML files (`tests/golden/*.yaml`), JSON outputs
+(`circuit.json`, `problem.json`, `solution.json`, `traces.jsonl`), and internal Python
+data structures use base SI units. Engineering prefixes (mA, kΩ, fF, μm, etc.)
+must never appear as bare numbers in these files.
+
+| Quantity | SI Unit | Correct example | Incorrect example |
+|---|---|---|---|
+| Voltage | V | `1.8`, `0.9` | `1800m`, `900m` |
+| Current | A | `80e-6`, `1.5e-3` | `80u`, `1.5m`, `0.080m` |
+| Resistance | Ω | `10000`, `6.25e5` | `10k`, `625k` |
+| Capacitance | F | `20e-15`, `100e-15` | `20f`, `100f`, `0.02p` |
+| Inductance | H | `1e-9` | `1n` |
+| Transconductance | S (= A/V) | `3.964e-4` | `0.396` (mA/V without label), `0.4m` |
+| Conductance | S | `1.6e-6` | `1.6u` |
+| Length (W, L) | m | `2e-6`, `180e-9` | `2u`, `180n` |
+| Frequency | Hz or rad/s | explicit in field name (`p1_Hz`, `p1_rad_per_s`) | — |
+| Time constant | s | `1.06e-8` | `10.6n` |
+| Lambda | V⁻¹ | `0.02` | — (already dimensionless-ish) |
+
+Human-readable markdown reports (`problem.md`, `solution.md`) may use engineering
+units ("20 fF", "625 kΩ", "80 μA") for readability, but paired machine-readable
+JSON/YAML fields must be SI. When the two coexist in the same document, they
+must refer to the same physical value.
+
+### Rationale
+
+Mixing units in machine-readable files causes silent bugs: a solver reading
+`gm=0.396` as SI (A/V) will compute `Av = -gm * ro = -247500` instead of `-247.5`,
+which passes type checks but fails physics. Forcing SI everywhere makes
+incorrect values dimensionally wrong and easier to catch.
+
+### Precision convention
+
+- Voltages: 4–5 significant figures (mV resolution at 1 V supply).
+- Currents: 4–5 significant figures.
+- Resistances: integer for nominal values (`10000`), scientific for large (`6.25e5`).
+- Capacitances: scientific notation (`20e-15`), 4–5 significant figures.
+- Gain (Av): 4–5 significant figures.
+- dB values: 2 decimal places (`47.88`, not `47.9`).
+- Frequencies: 4–5 significant figures.
+
+---
+
 ## 4. Grammar Rules (Topology Composition)
 
 Grammar rules govern which stage-to-stage connections are structurally valid. The full grammar is defined later (Phase 2+). Here we specify the rule hierarchy.
@@ -255,36 +300,70 @@ Weights are used as unnormalized sampling probabilities when Module A randomly s
 
 ---
 
-## 5. Ground Truth Strategy
+## 5. Verification Strategy
 
-### Why ngspice is the ground truth
+### Ground truth philosophy
 
-Closed-form hand analysis involves approximations (region assumptions, ignoring body effect, simplifying loads). ngspice solves the full nonlinear DC equations and the linearized AC equations numerically without these simplifications. Any discrepancy between hand analysis and simulation points to an error in the reasoning trace, not in the simulator.
+This pipeline generates analysis problems, not numerical simulation problems.
+The goal is to capture engineering analysis reasoning — which relies on
+first-order approximations, clean closed-form expressions, and explicit
+trade-offs — not bit-perfect numerical accuracy.
 
-### Numerical answer policy
+Accordingly:
 
-- All reported numerical answers (node voltages, branch currents, gain, bandwidth, poles) use the ngspice result as the authoritative value.
-- ngspice is invoked via `subprocess` (calling the `ngspice` binary directly) or via `PySpice`. The solver must not re-implement SPICE numerics.
-- DC operating point: use ngspice `.op` analysis.
-- AC frequency response: use ngspice `.ac` analysis.
-- Pole-zero: use ngspice `.pz` analysis where available; otherwise derive from `.ac` data.
+- **Golden cases and reference solutions** use standard engineering
+  approximations (first-order Q-point, ignoring second-order terms where
+  they contribute <5%, Miller approximation for Cgd, etc.).
+- **SPICE (ngspice)** is used as a sanity-check oracle, not an absolute
+  ground truth. SPICE results must agree with the approximated solution in
+  sign, order of magnitude, and within 5% tolerance — but larger deviations
+  due to known approximations are acceptable if documented.
+- **Reasoning traces** should make every approximation explicit. The
+  analysis value is in *why* terms are kept or dropped, not in carrying
+  every term to full precision.
+
+### Numerical tolerance
+
+- Tolerance for golden-case verification: **≤ 5% relative error**
+  between the reasoning-trace result and ngspice simulation.
+- Exceeding 5%: the sample is flagged for review. It is not automatically
+  discarded — a documented approximation that produces >5% error may still
+  be a valid teaching example if the trace explains the source.
+- Exceeding 20%: the sample is discarded as genuinely incorrect.
+
+### SPICE role
+
+SPICE is used to:
+- Verify Q-point existence (`.op` convergence = circuit is feasible).
+- Cross-check the sign and order of magnitude of analytical results.
+- Flag samples where approximations cause >5% deviation for review.
+
+SPICE is NOT used to:
+- Force golden cases to use numerical rather than analytical solutions.
+- Replace reasoning traces with raw simulation output.
+- Override hand-analysis results within the 5% tolerance band.
 
 ### Symbolic expression policy
 
 - SymPy is used to derive symbolic expressions (e.g., `Av = -gm * (RD || ro)`).
 - After symbolic derivation, substitute all given numerical parameters and evaluate.
-- Compare the symbolic numerical result against the ngspice result. Tolerance: ≤ 1% relative error.
-- If the tolerance is exceeded, the sample is discarded. The reason is logged in `validation.log` with both values.
+- Compare the symbolic numerical result against the ngspice result. Tolerance: ≤ 5% relative error.
+- If the tolerance is exceeded, the sample is flagged for review (not auto-discarded). The reason is logged in `validation.log` with both values.
 
 ### Approximation policy
 
 - Symbolic derivations may apply standard approximations from skill.md Section 7 (Miller, OCTC, TTC). Each applied approximation must be named explicitly in the trace entry's `actions` field.
-- Numerical evaluation compares against ngspice (which applies no approximations). The 1% tolerance absorbs approximation error; samples where approximations introduce > 1% error are discarded, not adjusted.
+- Standard approximations that are always acceptable when explicitly noted:
+  - **First-order Q-point**: solve Q-point with λ=0, then use `ro = 1/(λ·ID)` with the full λ in small-signal analysis.
+  - **Miller approximation** for Cgd splitting.
+  - **Open-circuit time constants (OCTC)** for pole estimation.
+  - **1/gm dominance**: when `1/gm << ro` and `1/gm << external loads` at a source node, approximate Rout at that node as `1/gm`.
+  - **Body effect ignored** when VBS = 0 explicitly (body tied to source).
 - When a derivation drops a term, the `derivations` field must note it explicitly (example: `"C_out ≈ CL, neglecting Cgd(1−1/Av) by Miller approximation"`).
 
 ### Discard and retry
 
-When a sample is discarded (DC infeasible, tolerance exceeded, or incomplete template), Module A generates a new circuit. Discard events are logged with full context for later analysis.
+When a sample is discarded (DC infeasible, >20% error, or incomplete template), Module A generates a new circuit. Discard events are logged with full context for later analysis.
 
 ### Failure modes and retry policy
 

@@ -1,0 +1,51 @@
+case_id: golden_cs_resistor_load
+topology: nmos_common_source_resistor_load
+computed_by: Jacqui
+computed_date: 4/18/2026
+
+given:
+  VDD: 1.8
+  RD: 10000
+  VG_DC: 0.9
+  Vth: 0.5
+  kn: 1e-3 # mA/V^2 scaled to SI
+  lambda: 0
+  Cgs: 2e-14 # 20 fF
+  Cgd: 5e-15 # 5 fF
+  CL: 1e-13 # 100 fF
+  Rs: 0
+
+expected:
+  qpoint:
+    VGS: 0.9
+    VS: 0
+    VD: 1
+    VDS: 1
+    VOV: 0.4
+    ID: 8e-5 # 80 uA
+    region: saturation
+    saturation_check_passes: true
+
+  small_signal:
+    gm: 4e-4
+    ro: null
+    ro_note: "infinite: lambda=0"
+
+  low_frequency:
+    Rin: null
+    Rin_note: "infinite: MOSFET gate"
+    Rout: 10000
+    Av: -4
+    Av_dB: 12.04
+    sign: inverting
+
+  high_frequency:
+    Cin_total: null
+    Cin_note: "no input RC: Rs=0, ideal voltage source drive"
+    Cout_total: 1.0625e-13 # CL + Cgd*(1 - 1/Av), exact
+    p1_rad_per_s: 9.4118e+8
+    p1_Hz: 1.498e+8
+    dominant_pole: "p1 (output node)"
+    zeros: []
+
+tolerance: 0.05 # 5%

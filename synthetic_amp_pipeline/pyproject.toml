@@ -1,1 +1,52 @@
-# placeholder
+[project]
+name = "synthetic-amp-pipeline"
+version = "0.1.0"
+description = "Synthetic CMOS amplifier circuit QA generator"
+authors = [
+    {name = "Jacqui", email = "li.jiaqin@northeastern.edu"}
+]
+license = "LicenseRef-Proprietary"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "pydantic>=2.5",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "sympy>=1.12",
+    "pyyaml>=6.0",
+    "networkx>=3.1",
+    "PySpice>=1.5",
+]
+
+[tool.poetry]
+packages = [{include = "src"}]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.4"
+pytest-cov = ">=4.1"
+ruff = ">=0.1"
+mypy = ">=1.7"
+ipython = ">=8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: unit tests (no external dependencies)",
+    "integration: integration tests (may require file I/O)",
+    "spice: tests requiring a working ngspice installation",
+]

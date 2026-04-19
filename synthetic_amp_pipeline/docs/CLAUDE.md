@@ -16,7 +16,7 @@ End use: fine-tuning or evaluation data for analog-reasoning LLMs.
 1. Never violate the 8-step order defined in skill.md: bias first, linearize second, frequency third, poles last.
 2. Every generated circuit must pass a DC feasibility check before moving to problem generation.
 3. Every numerical answer must be cross-validated against SPICE (ngspice) as ground truth.
-4. If SymPy is used for symbolic derivation, the symbolic expression — evaluated with given parameters — must match the SPICE result within 1% tolerance, otherwise discard the sample.
+4. If SymPy is used for symbolic derivation, the symbolic expression — evaluated with given parameters — must match the SPICE result within 5% tolerance. Samples with 5–20% deviation are flagged for review; >20% are discarded. (See ADR-003.)
 5. Template sections in template.md must never be silently omitted. Use "not provided" / "not applicable" / "not derived" for unavailable fields.
 6. The incidence matrix is the single source of truth for topology. SPICE netlist, graph representations, and schematics are all derived from it.
 
