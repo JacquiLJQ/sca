@@ -22,7 +22,7 @@ def _build_cs_resistor_devices() -> dict[str, Device]:
             id="M1",
             kind="nmos",
             terminals=["D", "G", "S", "B"],
-            metadata={"W": 2e-6, "L": 180e-9, "model": "nmos_lvt"},
+            metadata={"W": 1e-6, "L": 1e-7, "model": "nmos_lvt"},
         ),
         "RD": Device(
             id="RD",

@@ -10,8 +10,8 @@ _PREFIX_FOR_KIND: dict[str, str] = {
 }
 
 DEFAULT_MODEL_PARAMS: dict[str, dict[str, float]] = {
-    "nmos": {"Vth": 0.5, "kn": 1e-3, "lambda": 0.0},
-    "pmos": {"Vth": 0.5, "kn": 1e-3, "lambda": 0.0},
+    "nmos": {"Vth": 0.5, "mun_Cox": 100e-6, "lambda": 0.0},
+    "pmos": {"Vth": 0.5, "mup_Cox": 100e-6, "lambda": 0.0},
 }
 
 
@@ -30,12 +30,26 @@ def circuit_to_netlist(
     Returns a string; does not write to disk. Caller adds analysis
     commands (.op, .ac, etc.) before the returned .end line.
 
-    Model parameter convention: Vth must be a positive magnitude.
-    The writer emits VTO=+Vth for NMOS and VTO=-Vth for PMOS automatically.
+    Model parameters in Phase 1:
+     - mun_Cox, mup_Cox: per-square transconductance (A/V^2, >0)
+     - Vth: threshold voltage magnitude (V, >0); writer adds sign for PMOS
+     - lambda: channel-length modulation (V^-1, >=0)
+     Writer emits KP={mun_Cox} or {mup_Cox} to ngspice, and uses per-device
+     W/L from Device.metadata.
     """
     params = DEFAULT_MODEL_PARAMS if model_params is None else model_params
 
-    # Vth sign contract: must be positive; writer applies sign per kind
+    # Parameter contracts
+    if params["nmos"]["mun_Cox"] <= 0:
+        raise ValueError(
+            f"model_params['nmos']['mun_Cox'] must be positive "
+            f"(got {params['nmos']['mun_Cox']})"
+        )
+    if params["pmos"]["mup_Cox"] <= 0:
+        raise ValueError(
+            f"model_params['pmos']['mup_Cox'] must be positive "
+            f"(got {params['pmos']['mup_Cox']})"
+        )
     for kind in ("nmos", "pmos"):
         if params[kind]["Vth"] <= 0:
             raise ValueError(
@@ -110,11 +124,11 @@ def circuit_to_netlist(
     p = params["pmos"]
     lines.append(
         f".MODEL NMOS_L1 NMOS "
-        f"(LEVEL=1 VTO={n['Vth']:.6g} KP={n['kn']:.6g} LAMBDA={n['lambda']:.6g})"
+        f"(LEVEL=1 VTO={n['Vth']:.6g} KP={n['mun_Cox']:.6g} LAMBDA={n['lambda']:.6g})"
     )
     lines.append(
         f".MODEL PMOS_L1 PMOS "
-        f"(LEVEL=1 VTO=-{p['Vth']:.6g} KP={p['kn']:.6g} LAMBDA={p['lambda']:.6g})"
+        f"(LEVEL=1 VTO=-{p['Vth']:.6g} KP={p['mup_Cox']:.6g} LAMBDA={p['lambda']:.6g})"
     )
     lines.append("")
     lines.append(".end")

@@ -2,12 +2,17 @@ case_id: golden_cs_ideal_current_source_load
 topology: nmos_common_source_ideal_current_source_load
 computed_by: Jacqui
 computed_date: 4/18/2026
+assumptions_convention: "hand-calc oracle (ADR-004); kn split into mun_Cox and W/L"
 
 given:
   VDD: 1.8
   Iload: 8e-5 # ideal current source, forces ID = 80 uA from VDD into vo
   Vth: 0.5
-  kn: 1e-3
+  # Process parameter (NMOS per-square transconductance, shared in Phase 1)
+  mun_Cox: 100e-6
+  # Per-device geometry (effective kn = mun_Cox * W/L = 1e-3, matches prior hand calc)
+  W: 1e-6
+  L: 1e-7
   lambda: 0.02
   Cgs: 2e-14
   Cgd: 5e-15

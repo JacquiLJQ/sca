@@ -6,7 +6,7 @@ from src.utils.netlist_writer import circuit_to_netlist
 
 @pytest.mark.unit
 def test_netlist_contains_mosfet_line(cs_resistor_circuit_with_dc: Circuit) -> None:
-    expected = "M1 vo vin 0 0 NMOS_L1 W=2e-06 L=1.8e-07"
+    expected = "M1 vo vin 0 0 NMOS_L1 W=1e-06 L=1e-07"
     netlist = circuit_to_netlist(cs_resistor_circuit_with_dc)
     assert any(line.strip() == expected for line in netlist.splitlines())
 
@@ -91,8 +91,18 @@ def test_netlist_header_comment(cs_resistor_circuit_with_dc: Circuit) -> None:
 @pytest.mark.unit
 def test_netlist_raises_on_negative_vth(cs_resistor_circuit_with_dc: Circuit) -> None:
     bad_params = {
-        "nmos": {"Vth": -0.5, "kn": 1e-3, "lambda": 0.0},
-        "pmos": {"Vth": 0.5, "kn": 1e-3, "lambda": 0.0},
+        "nmos": {"Vth": -0.5, "mun_Cox": 100e-6, "lambda": 0.0},
+        "pmos": {"Vth": 0.5, "mup_Cox": 100e-6, "lambda": 0.0},
     }
     with pytest.raises(ValueError, match="Vth"):
+        circuit_to_netlist(cs_resistor_circuit_with_dc, model_params=bad_params)
+
+
+@pytest.mark.unit
+def test_netlist_raises_on_negative_mun_cox(cs_resistor_circuit_with_dc: Circuit) -> None:
+    bad_params = {
+        "nmos": {"Vth": 0.5, "mun_Cox": -100e-6, "lambda": 0.0},
+        "pmos": {"Vth": 0.5, "mup_Cox": 100e-6, "lambda": 0.0},
+    }
+    with pytest.raises(ValueError, match="mun_Cox"):
         circuit_to_netlist(cs_resistor_circuit_with_dc, model_params=bad_params)
