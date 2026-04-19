@@ -225,6 +225,9 @@ Each column has exactly one `1`. The SPICE netlist and all graph representations
 
 `voltage_dc: null` means the value must be solved by DC analysis; it is filled in after Module C runs.
 
+`role` allowed values: `"supply"` | `"ground"` | `"input"` | `"output"` | `"internal"`.
+Use `"internal"` for inter-stage nodes in multi-stage circuits (e.g., the drain node connecting a CS output to an SF input).
+
 ---
 
 ## 3A. Numerical Unit Conventions
