@@ -6,28 +6,7 @@ from typing import Any
 import yaml
 
 from src.topology.models import Circuit, Device, IncidenceMatrix, Node
-from src.utils.netlist_writer import DEFAULT_MODEL_PARAMS
-
-
-def build_model_params(given: dict[str, Any]) -> dict[str, dict[str, float]]:
-    """Build model_params dict for circuit_to_netlist from a golden 'given' block.
-
-    NMOS params come from 'given'; PMOS defaults come from DEFAULT_MODEL_PARAMS
-    (Phase 1 circuits are all-NMOS, so PMOS values are never exercised here).
-    """
-    pmos_base = DEFAULT_MODEL_PARAMS["pmos"]
-    return {
-        "nmos": {
-            "Vth": float(given["Vth"]),
-            "mun_Cox": float(given["mun_Cox"]),
-            "lambda": float(given.get("lambda", 0.0)),
-        },
-        "pmos": {
-            "Vth": float(given.get("pmos_Vth", pmos_base["Vth"])),
-            "mup_Cox": float(given.get("pmos_mup_Cox", pmos_base["mup_Cox"])),
-            "lambda": float(given.get("pmos_lambda", pmos_base["lambda"])),
-        },
-    }
+from src.utils.model_params import build_model_params  # noqa: F401  (re-exported)
 
 
 def circuit_from_cs_resistor_given(given: dict[str, Any]) -> Circuit:
