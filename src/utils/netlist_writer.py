@@ -7,6 +7,7 @@ _PREFIX_FOR_KIND: dict[str, str] = {
     "pmos": "M",
     "resistor": "R",
     "capacitor": "C",
+    "current_source": "I",
 }
 
 DEFAULT_MODEL_PARAMS: dict[str, dict[str, float]] = {
@@ -117,6 +118,13 @@ def circuit_to_netlist(
             if value is None:
                 raise ValueError(f"Capacitor '{dev_id}' metadata missing 'value'")
             lines.append(f"{dev_id} {a} {b} {value:.6g}")
+        elif dev.kind == "current_source":
+            a = _spice_node(circuit, f"{dev_id}.a")  # n+
+            b = _spice_node(circuit, f"{dev_id}.b")  # n-
+            value = dev.metadata.get("value")
+            if value is None:
+                raise ValueError(f"Current source '{dev_id}' metadata missing 'value'")
+            lines.append(f"{dev_id} {a} {b} DC {value:.6g}")
 
     # --- model definitions ---
     lines.append("")

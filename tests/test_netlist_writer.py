@@ -106,3 +106,35 @@ def test_netlist_raises_on_negative_mun_cox(cs_resistor_circuit_with_dc: Circuit
     }
     with pytest.raises(ValueError, match="mun_Cox"):
         circuit_to_netlist(cs_resistor_circuit_with_dc, model_params=bad_params)
+
+
+@pytest.mark.unit
+def test_netlist_contains_current_source_line() -> None:
+    """Minimal circuit with one ideal current source; verifies SPICE line format."""
+    circuit = Circuit(
+        sample_id="test-cs-ideal-load-001",
+        incidence=IncidenceMatrix(
+            nodes=["VDD", "vo", "GND"],
+            terminals=["I_load.a", "I_load.b"],
+            matrix=[
+                [1, 0],  # VDD — I_load.a (n+)
+                [0, 1],  # vo  — I_load.b (n-)
+                [0, 0],  # GND — unconnected to this device
+            ],
+        ),
+        devices={
+            "I_load": Device(
+                id="I_load",
+                kind="current_source",
+                terminals=["a", "b"],
+                metadata={"value": 80e-6},
+            ),
+        },
+        nodes={
+            "VDD": Node(id="VDD", role="supply",  voltage_dc=1.8),
+            "vo":  Node(id="vo",  role="output",  voltage_dc=None),
+            "GND": Node(id="GND", role="ground",  voltage_dc=0.0),
+        },
+    )
+    netlist = circuit_to_netlist(circuit)
+    assert any(line.strip() == "I_load VDD vo DC 8e-05" for line in netlist.splitlines())

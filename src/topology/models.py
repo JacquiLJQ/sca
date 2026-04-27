@@ -31,7 +31,7 @@ _TWO_TERMINAL_TERMINALS: frozenset[str] = frozenset({"a", "b"})
 
 class Device(BaseModel):
     id: str
-    kind: Literal["nmos", "pmos", "resistor", "capacitor"]
+    kind: Literal["nmos", "pmos", "resistor", "capacitor", "current_source"]
     terminals: list[str]
     metadata: dict[str, Any] = Field(default_factory=dict)
     match_group_id: Optional[str] = None
