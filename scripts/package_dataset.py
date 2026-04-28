@@ -103,9 +103,20 @@ def run_packaging(
         else:
             samples.append(record)
 
-    # Write dataset.jsonl -------------------------------------------------
+    # Write dataset.jsonl + per-validation splits -------------------------
+    pass_samples = [s for s in samples if s["spice_validation"] == "PASS"]
+    fail_samples = [s for s in samples if s["spice_validation"] == "FAIL"]
+
     with (output_dir / "dataset.jsonl").open("w") as fh:
         for s in samples:
+            fh.write(json.dumps(s) + "\n")
+
+    with (output_dir / "dataset_pass.jsonl").open("w") as fh:
+        for s in pass_samples:
+            fh.write(json.dumps(s) + "\n")
+
+    with (output_dir / "dataset_fail.jsonl").open("w") as fh:
+        for s in fail_samples:
             fh.write(json.dumps(s) + "\n")
 
     # Write skipped.txt ---------------------------------------------------
@@ -115,22 +126,41 @@ def run_packaging(
     # Collect stats -------------------------------------------------------
     vdd_vals = [s["given"].get("VDD") for s in samples]
     rd_vals  = [s["given"].get("RD")  for s in samples]
-    av_vals  = [
-        abs(s["solution"]["low_frequency"]["Av"])
-        for s in samples
-        if s["solution"].get("low_frequency", {}).get("Av") is not None
-    ]
-    gm_vals  = [
-        s["solution"]["small_signal"]["gm"]
-        for s in samples
-        if s["solution"].get("small_signal", {}).get("gm") is not None
-    ]
+
+    def _get_av(sol: dict) -> float | None:
+        # Multi-stage: cascade.Av_total; single-stage: low_frequency.Av
+        av = sol.get("cascade", {}).get("Av_total")
+        if av is None:
+            av = sol.get("low_frequency", {}).get("Av")
+        return abs(av) if av is not None else None
+
+    def _get_gm(sol: dict) -> float | None:
+        # Single-stage: small_signal.gm; multi-stage: first stage's gm
+        gm = sol.get("small_signal", {}).get("gm")
+        if gm is None:
+            gm = sol.get("stages", {}).get("stage_1", {}).get("small_signal", {}).get("gm")
+        return gm
+
+    av_vals = [_get_av(s["solution"]) for s in samples if _get_av(s["solution"]) is not None]
+    gm_vals = [_get_gm(s["solution"]) for s in samples if _get_gm(s["solution"]) is not None]
 
     val_counts: dict[str, int] = {"PASS": 0, "WARNING": 0, "FAIL": 0, "SKIPPED": 0}
+    topo_counts: dict[str, int] = {}
+    topo_pass: dict[str, int] = {}
+    topo_fail: dict[str, int] = {}
     for s in samples:
         val_counts[s["spice_validation"]] += 1
+        topo_counts[s["topology"]] = topo_counts.get(s["topology"], 0) + 1
+        if s["spice_validation"] == "PASS":
+            topo_pass[s["topology"]] = topo_pass.get(s["topology"], 0) + 1
+        elif s["spice_validation"] == "FAIL":
+            topo_fail[s["topology"]] = topo_fail.get(s["topology"], 0) + 1
 
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    topo_rows = "\n".join(f"- {t}: {c}" for t, c in sorted(topo_counts.items()))
+    topo_pass_rows = "\n".join(f"- {t}: {c}" for t, c in sorted(topo_pass.items())) or "*(none)*"
+    topo_fail_rows = "\n".join(f"- {t}: {c}" for t, c in sorted(topo_fail.items())) or "*(none)*"
+
     stats_md = "\n".join([
         "# Dataset Statistics",
         "",
@@ -140,10 +170,22 @@ def run_packaging(
         "",
         "## SPICE Validation",
         "",
-        f"- PASS: {val_counts['PASS']}",
+        f"- PASS: {val_counts['PASS']}  → dataset_pass.jsonl",
         f"- WARNING: {val_counts['WARNING']}",
-        f"- FAIL: {val_counts['FAIL']}",
+        f"- FAIL: {val_counts['FAIL']}  → dataset_fail.jsonl",
         f"- SKIPPED (no SPICE run): {val_counts['SKIPPED']}",
+        "",
+        "## Topology Breakdown (all)",
+        "",
+        topo_rows,
+        "",
+        "## Topology Breakdown — PASS only",
+        "",
+        topo_pass_rows,
+        "",
+        "## Topology Breakdown — FAIL only",
+        "",
+        topo_fail_rows,
         "",
         "## Parameter Distribution",
         "",

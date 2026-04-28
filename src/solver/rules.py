@@ -126,13 +126,31 @@ def rule_saturation_check(VDS: float, VOV: float) -> RuleResult:
 # ---------------------------------------------------------------------------
 
 def rule_transconductance(kn: float, VOV: float) -> RuleResult:
-    """gm = kn * VOV  (= dID/dVGS evaluated at the Q-point)"""
+    """gm = kn * VOV  (CLM omitted; use rule_transconductance_clm when VDS is available)"""
     return RuleResult(
         value=kn * VOV,
         formula_latex=r"g_m = k_n V_{OV}",
         justification=(
             "Small-signal transconductance: partial derivative of drain "
             "current with respect to VGS, evaluated at the Q-point in saturation."
+        ),
+        approximations=["channel-length modulation omitted from gm (lambda*VDS factor dropped)"],
+    )
+
+
+def rule_transconductance_clm(kn: float, VOV: float, lam: float, VDS: float) -> RuleResult:
+    """gm = kn * VOV * (1 + lambda * VDS)  — full CLM-corrected transconductance.
+
+    Matches ngspice Level-1 definition: gm = KP*(W/L)*(VGS-Vth)*(1+LAMBDA*VDS).
+    """
+    clm = 1.0 + lam * VDS
+    return RuleResult(
+        value=kn * VOV * clm,
+        formula_latex=r"g_m = k_n V_{OV} (1 + \lambda V_{DS})",
+        justification=(
+            "Small-signal transconductance including channel-length modulation: "
+            "partial derivative of ID = (kn/2)·VOV²·(1+λ·VDS) with respect to VGS. "
+            "Matches the ngspice Level-1 model (KP·W/L·(VGS−Vth)·(1+LAMBDA·VDS))."
         ),
         approximations=[],
     )
@@ -638,6 +656,72 @@ def rule_cascode_output_resistance(gm2: float, ro1: float, ro2: float) -> RuleRe
             "source-degeneration resistance, boosting its output resistance by "
             "factor (1 + gm2·ro1). For typical gm2·ro1 >> 1, this approximates "
             "gm2·ro2·ro1, the intrinsic gain of M2 times ro1."
+        ),
+        approximations=[],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Multi-stage — Step 6: inter-stage loading analysis and cascade gain
+# ---------------------------------------------------------------------------
+
+def rule_rin_infinite() -> RuleResult:
+    """Rin = ∞  — MOSFET gate input resistance (no gate current)."""
+    return RuleResult(
+        value=float("inf"),
+        formula_latex=r"R_{in} = \infty",
+        justification=(
+            "MOSFET gate input resistance is effectively infinite at low frequency: "
+            "the gate oxide prevents DC gate current."
+        ),
+        approximations=[],
+    )
+
+
+def rule_loading_factor(Rout_prev: float, Rin_next: float) -> RuleResult:
+    """loading_factor = Rin_next / (Rout_prev + Rin_next); 1.0 when Rin_next → ∞."""
+    if math.isinf(Rin_next):
+        factor = 1.0
+    else:
+        factor = Rin_next / (Rout_prev + Rin_next)
+    return RuleResult(
+        value=factor,
+        formula_latex=r"\alpha = \frac{R_{in,next}}{R_{out,prev} + R_{in,next}}",
+        justification=(
+            "Voltage-divider loading factor between cascaded stages: ratio of the "
+            "next stage's input impedance to the total series resistance. "
+            "Approaches 1 when Rin_next >> Rout_prev (negligible loading)."
+        ),
+        approximations=(
+            ["loading factor = 1 (Rin_next = ∞, no loading)"]
+            if math.isinf(Rin_next)
+            else []
+        ),
+    )
+
+
+def rule_loaded_gain(Av_unloaded: float, loading_factor: float) -> RuleResult:
+    """Av_loaded = Av_unloaded * loading_factor."""
+    return RuleResult(
+        value=Av_unloaded * loading_factor,
+        formula_latex=r"A_{v,\mathrm{loaded}} = A_v \cdot \alpha",
+        justification=(
+            "Effective stage gain after accounting for the voltage-divider "
+            "attenuation caused by the next stage's input impedance loading "
+            "the current stage's output."
+        ),
+        approximations=[],
+    )
+
+
+def rule_cascade_gain(Av1: float, Av2: float) -> RuleResult:
+    """Av_total = Av1 * Av2  — gain of two cascaded stages."""
+    return RuleResult(
+        value=Av1 * Av2,
+        formula_latex=r"A_{v,\mathrm{total}} = A_{v1} \cdot A_{v2}",
+        justification=(
+            "Total voltage gain of cascaded stages is the product of individual "
+            "stage gains (assuming ideal inter-stage isolation)."
         ),
         approximations=[],
     )

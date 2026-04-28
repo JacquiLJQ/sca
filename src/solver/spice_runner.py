@@ -119,19 +119,22 @@ def _parse_branch_currents(stdout: str) -> dict[str, float]:
 def _parse_device_parameters(stdout: str) -> dict[str, dict[str, float]]:
     """Parse MOSFET instance parameter blocks from ngspice .op stdout.
 
-    Matches ' MosN: ...' instance sections (1 leading space + MosN + colon).
-    Model sections (' Mos1 models ...') are skipped because they lack the colon.
-    Non-numeric fields (e.g., 'model' lines) are silently skipped.
-    Solvers read device kind from Device.metadata, not ngspice output.
-    Returns empty dict if no MOSFET instance blocks are found.
+    Handles both single-device and multi-device (multi-column) blocks:
+      device   m1                       (single-device: 2 parts)
+      device   m1_sig_s2   m1           (multi-device: 3+ parts)
+
+    The first 'Mos1:' section is a model-parameter table (no 'device' row) and
+    is silently skipped.  The second 'Mos1:' section is the instance-parameter
+    table and contains the 'device' header row.
     """
     result: dict[str, dict[str, float]] = {}
     lines = stdout.splitlines()
     i = 0
     while i < len(lines):
         if re.match(r"^ Mos\d+:\s+", lines[i]):
-            params: dict[str, float] = {}
-            device_name: str | None = None
+            device_names: list[str] = []
+            # param_name → list of float values, one per device column
+            col_values: dict[str, list[float | None]] = {}
             i += 1
             while i < len(lines):
                 if not lines[i].strip():
@@ -140,17 +143,25 @@ def _parse_device_parameters(stdout: str) -> dict[str, dict[str, float]]:
                     break
                 stripped = lines[i].strip()
                 parts = stripped.split()
-                if len(parts) == 2:
+                if len(parts) >= 2:
                     if parts[0] == "device":
-                        device_name = parts[1]
-                    else:
-                        try:
-                            params[parts[0]] = float(parts[1])
-                        except ValueError:
-                            pass
+                        device_names = parts[1:]
+                    elif device_names:
+                        vals: list[float | None] = []
+                        for v in parts[1:]:
+                            try:
+                                vals.append(float(v))
+                            except ValueError:
+                                vals.append(None)
+                        col_values[parts[0]] = vals
                 i += 1
-            if device_name is not None:
-                result[device_name] = params
+            for col_idx, dev_name in enumerate(device_names):
+                dev_params: dict[str, float] = {}
+                for param_name, vals in col_values.items():
+                    if col_idx < len(vals) and vals[col_idx] is not None:
+                        dev_params[param_name] = vals[col_idx]  # type: ignore[assignment]
+                if dev_params:
+                    result[dev_name] = dev_params
         else:
             i += 1
     return result

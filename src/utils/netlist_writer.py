@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from src.topology.models import Circuit
 
 _PREFIX_FOR_KIND: dict[str, str] = {
@@ -22,25 +24,38 @@ def _spice_node(circuit: Circuit, terminal: str) -> str:
     return "0" if circuit.nodes[node_id].role == "ground" else node_id
 
 
+def _model_name_for(dev_id: str, kind: str, model_params: dict) -> str:
+    """Return the .MODEL name for a MOSFET device.
+
+    If model_params contains a per-device entry keyed by dev_id, return a
+    device-specific name; otherwise return the shared NMOS_L1 / PMOS_L1 name.
+    """
+    if dev_id in model_params:
+        safe = dev_id.replace("-", "_")
+        return f"NMOS_{safe}" if kind == "nmos" else f"PMOS_{safe}"
+    return "NMOS_L1" if kind == "nmos" else "PMOS_L1"
+
+
 def circuit_to_netlist(
     circuit: Circuit,
     model_params: dict[str, dict[str, float]] | None = None,
 ) -> str:
     """Generate an ngspice-dialect SPICE netlist string from a Circuit.
 
-    Returns a string; does not write to disk. Caller adds analysis
-    commands (.op, .ac, etc.) before the returned .end line.
+    model_params format:
+      Shared model (Level 1 / single-stage):
+        {"nmos": {"Vth": ..., "mun_Cox": ..., "lambda": ...}, "pmos": {...}}
 
-    Model parameters in Phase 1:
-     - mun_Cox, mup_Cox: per-square transconductance (A/V^2, >0)
-     - Vth: threshold voltage magnitude (V, >0); writer adds sign for PMOS
-     - lambda: channel-length modulation (V^-1, >=0)
-     Writer emits KP={mun_Cox} or {mup_Cox} to ngspice, and uses per-device
-     W/L from Device.metadata.
+      Per-device model (multi-stage, ADR-008 D3):
+        {"nmos": {...}, "pmos": {...},
+         "M1": {"Vth": ..., "mun_Cox": ..., "lambda": ...},
+         "M1_sig_s2": {"Vth": ..., "mun_Cox": ..., "lambda": ...}, ...}
+
+      When a device ID key is present, that MOSFET gets its own .MODEL line.
     """
     params = DEFAULT_MODEL_PARAMS if model_params is None else model_params
 
-    # Parameter contracts
+    # --- parameter contracts ---
     if params["nmos"]["mun_Cox"] <= 0:
         raise ValueError(
             f"model_params['nmos']['mun_Cox'] must be positive "
@@ -58,7 +73,7 @@ def circuit_to_netlist(
                 f"(got {params[kind]['Vth']}); writer applies sign based on device kind"
             )
 
-    # Device id prefix contract: writer's responsibility, not the model's
+    # --- device id prefix contract ---
     for dev_id, dev in sorted(circuit.devices.items()):
         expected = _PREFIX_FOR_KIND[dev.kind]
         if not dev_id.startswith(expected):
@@ -94,7 +109,7 @@ def circuit_to_netlist(
     # --- device lines ---
     for dev_id, dev in sorted(circuit.devices.items()):
         if dev.kind in ("nmos", "pmos"):
-            model_name = "NMOS_L1" if dev.kind == "nmos" else "PMOS_L1"
+            mname = _model_name_for(dev_id, dev.kind, params)
             d = _spice_node(circuit, f"{dev_id}.D")
             g = _spice_node(circuit, f"{dev_id}.G")
             s = _spice_node(circuit, f"{dev_id}.S")
@@ -103,7 +118,7 @@ def circuit_to_netlist(
             L = dev.metadata.get("L")
             if W is None or L is None:
                 raise ValueError(f"MOSFET '{dev_id}' metadata missing 'W' or 'L'")
-            lines.append(f"{dev_id} {d} {g} {s} {b} {model_name} W={W:.6g} L={L:.6g}")
+            lines.append(f"{dev_id} {d} {g} {s} {b} {mname} W={W:.6g} L={L:.6g}")
         elif dev.kind == "resistor":
             a = _spice_node(circuit, f"{dev_id}.a")
             b = _spice_node(circuit, f"{dev_id}.b")
@@ -130,6 +145,27 @@ def circuit_to_netlist(
     lines.append("")
     n = params["nmos"]
     p = params["pmos"]
+
+    # Collect MOSFETs with per-device models
+    per_device_emitted: set[str] = set()
+    for dev_id, dev in sorted(circuit.devices.items()):
+        if dev.kind in ("nmos", "pmos") and dev_id in params:
+            dp = params[dev_id]
+            mname = _model_name_for(dev_id, dev.kind, params)
+            if mname not in per_device_emitted:
+                if dev.kind == "nmos":
+                    lines.append(
+                        f".MODEL {mname} NMOS "
+                        f"(LEVEL=1 VTO={dp['Vth']:.6g} KP={dp['mun_Cox']:.6g} LAMBDA={dp['lambda']:.6g})"
+                    )
+                else:
+                    lines.append(
+                        f".MODEL {mname} PMOS "
+                        f"(LEVEL=1 VTO=-{dp['Vth']:.6g} KP={dp['mup_Cox']:.6g} LAMBDA={dp['lambda']:.6g})"
+                    )
+                per_device_emitted.add(mname)
+
+    # Shared fallback models (always emitted; used by devices without per-device entry)
     lines.append(
         f".MODEL NMOS_L1 NMOS "
         f"(LEVEL=1 VTO={n['Vth']:.6g} KP={n['mun_Cox']:.6g} LAMBDA={n['lambda']:.6g})"

@@ -41,7 +41,7 @@ CS_RESISTOR_TEMPLATE: list[DAGNode] = [
     DAGNode("sat_check", 4, "rule_saturation_check",     ["VDS", "VOV"],      "sat_ok"),
 
     # Step 5: Small-signal parameter extraction
-    DAGNode("gm",   5, "rule_transconductance",          ["kn", "VOV"],       "gm"),
+    DAGNode("gm",   5, "rule_transconductance_clm",      ["kn", "VOV", "lambda", "VDS"], "gm"),
     DAGNode("ro",   5, "rule_output_resistance",         ["lambda", "ID"],    "ro"),
 
     # Step 6: Low-frequency gain and output resistance
@@ -94,7 +94,7 @@ SF_RESISTOR_TEMPLATE: list[DAGNode] = [
     DAGNode("sat_check", 4, "rule_saturation_check", ["VDS", "VOV"],                    "sat_ok"),
 
     # Step 5: Small-signal parameter extraction
-    DAGNode("gm",  5, "rule_transconductance",        ["kn", "VOV"],                    "gm"),
+    DAGNode("gm",  5, "rule_transconductance_clm",    ["kn", "VOV", "lambda", "VDS"],   "gm"),
     DAGNode("ro",  5, "rule_output_resistance",       ["lambda", "ID"],                 "ro"),
 
     # Step 6: Low-frequency gain and output resistance
@@ -153,7 +153,7 @@ CS_IDEAL_CURRENT_SOURCE_TEMPLATE: list[DAGNode] = [
     DAGNode("sat_check", 4, "rule_saturation_check",        ["VDS", "VOV"],               "sat_ok"),
 
     # Step 5: Small-signal parameter extraction
-    DAGNode("gm",    5, "rule_transconductance",             ["kn", "VOV"],               "gm"),
+    DAGNode("gm",    5, "rule_transconductance_clm",         ["kn", "VOV", "lambda", "VDS"], "gm"),
     DAGNode("ro",    5, "rule_output_resistance",            ["lambda", "ID"],            "ro"),
 
     # Step 6: Low-frequency gain and output resistance
@@ -205,7 +205,7 @@ CG_RESISTOR_TEMPLATE: list[DAGNode] = [
     DAGNode("sat_check", 4, "rule_saturation_check",     ["VDS", "VOV"],              "sat_ok"),
 
     # Step 5: Small-signal parameter extraction
-    DAGNode("gm",   5, "rule_transconductance",           ["kn", "VOV"],               "gm"),
+    DAGNode("gm",   5, "rule_transconductance_clm",       ["kn", "VOV", "lambda", "VDS"], "gm"),
     DAGNode("ro",   5, "rule_output_resistance",          ["lambda", "ID"],            "ro"),
 
     # Step 6: Low-frequency gain, output resistance, and input resistance
@@ -273,9 +273,9 @@ CASCODE_RESISTOR_TEMPLATE: list[DAGNode] = [
     DAGNode("sat_ok2", 4, "rule_saturation_check",          ["VDS2", "VOV2"],         "sat_ok2"),
 
     # Step 5: Small-signal parameters (both devices; same ID flows through both)
-    DAGNode("gm1",  5, "rule_transconductance",              ["kn1", "VOV1"],         "gm1"),
+    DAGNode("gm1",  5, "rule_transconductance_clm",          ["kn1", "VOV1", "lambda1", "VDS1"], "gm1"),
     DAGNode("ro1",  5, "rule_output_resistance",             ["lambda1", "ID"],       "ro1"),
-    DAGNode("gm2",  5, "rule_transconductance",              ["kn2", "VOV2"],         "gm2"),
+    DAGNode("gm2",  5, "rule_transconductance_clm",          ["kn2", "VOV2", "lambda2", "VDS2"], "gm2"),
     DAGNode("ro2",  5, "rule_output_resistance",             ["lambda2", "ID"],       "ro2"),
 
     # Step 6: Low-frequency gain and output resistance
