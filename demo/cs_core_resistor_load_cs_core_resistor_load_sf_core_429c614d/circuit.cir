@@ -1,0 +1,19 @@
+* Generated from Circuit sample_id=cs_core_resistor_load_cs_core_resistor_load_sf_core_429c614d
+* Devices: 6, Nodes: 6
+
+V_VDD VDD 0 DC 5
+V_gate gate 0 DC 0.913978
+M1 drain gate 0 0 NMOS_M1 W=1e-05 L=1e-06
+M1_sig_s2 drain_sig_s2 drain 0 0 NMOS_M1_sig_s2 W=1e-05 L=1e-06
+M1_sig_s3 VDD drain_sig_s2 source 0 NMOS_M1_sig_s3 W=1e-05 L=1e-06
+RD VDD drain 23092.3
+RD_load_s2 VDD drain_sig_s2 1356.31
+Rs source 0 255884
+
+.MODEL NMOS_M1 NMOS (LEVEL=1 VTO=0.5 KP=0.0001 LAMBDA=0.034149)
+.MODEL NMOS_M1_sig_s2 NMOS (LEVEL=1 VTO=0.5 KP=5e-05 LAMBDA=0.0314491)
+.MODEL NMOS_M1_sig_s3 NMOS (LEVEL=1 VTO=0.5 KP=0.0001 LAMBDA=0.0217271)
+.MODEL NMOS_L1 NMOS (LEVEL=1 VTO=0.5 KP=0.0001 LAMBDA=0)
+.MODEL PMOS_L1 PMOS (LEVEL=1 VTO=-0.5 KP=0.0001 LAMBDA=0)
+
+.end

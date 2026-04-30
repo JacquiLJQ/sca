@@ -40,11 +40,5 @@ End use: fine-tuning or evaluation data for analog-reasoning LLMs.
 - Module C — Solver (src/solver/): executes skill.md procedure and generates reasoning traces
 - Module D — Packager (src/packager/): deduplicates and assembles the dataset
 
-## Development Phases
-- Phase 1 (current): implement single-stage CS only; achieve end-to-end pipeline; target 100 samples.
-- Phase 2: add SF / CG / Cascode stages.
-- Phase 3: add differential pair and multi-stage amplifiers.
-- Phase 4: add folded cascode, feedback, and compensation.
-
 ## When Uncertain
 If you are unsure about circuit conventions, MOSFET equations, or the scope of a task, ask the user first. Do not guess.

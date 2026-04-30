@@ -1,0 +1,36 @@
+{
+  "sample_id": "cs_core_resistor_load_cs_core_resistor_load_sf_core_429c614d",
+  "topology": "cs_resistor+cs_resistor+sf_resistor",
+  "given": {
+    "VDD": 5.0,
+    "CL": 1e-12,
+    "Cgd": 1e-13,
+    "W": 1e-05,
+    "L": 1e-06,
+    "VG_DC_s1": 0.9139781901912012,
+    "Vth_s1": 0.5,
+    "kn_s1": 0.001,
+    "lambda_s1": 0.03414904125467565,
+    "RD_s1": 23092.335313609237,
+    "VG_DC_s2": 3.0212415495211897,
+    "Vth_s2": 0.5,
+    "kn_s2": 0.0005,
+    "lambda_s2": 0.03144912365818803,
+    "RD_s2": 1356.3114438344005,
+    "VG_DC_s3": 2.844597680040727,
+    "Vth_s3": 0.5,
+    "kn_s3": 0.001,
+    "lambda_s3": 0.021727131256283717,
+    "Rs_load_s3": 255883.63680014358
+  },
+  "question_type": "qpoint",
+  "asked_quantities": [
+    "VGS",
+    "VOV",
+    "ID",
+    "VD",
+    "VDS",
+    "gm",
+    "Av"
+  ]
+}

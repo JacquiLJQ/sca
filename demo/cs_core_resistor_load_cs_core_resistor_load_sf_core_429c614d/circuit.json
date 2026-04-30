@@ -1,0 +1,270 @@
+{
+  "sample_id": "cs_core_resistor_load_cs_core_resistor_load_sf_core_429c614d",
+  "incidence": {
+    "nodes": [
+      "VDD",
+      "drain_sig_s2",
+      "GND",
+      "gate",
+      "drain",
+      "source"
+    ],
+    "terminals": [
+      "M1.D",
+      "M1.G",
+      "M1.S",
+      "M1.B",
+      "RD.a",
+      "RD.b",
+      "M1_sig_s2.D",
+      "M1_sig_s2.G",
+      "M1_sig_s2.S",
+      "M1_sig_s2.B",
+      "RD_load_s2.a",
+      "RD_load_s2.b",
+      "M1_sig_s3.D",
+      "M1_sig_s3.G",
+      "M1_sig_s3.S",
+      "M1_sig_s3.B",
+      "Rs.a",
+      "Rs.b"
+    ],
+    "matrix": [
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        1,
+        0
+      ]
+    ]
+  },
+  "devices": {
+    "M1": {
+      "id": "M1",
+      "kind": "nmos",
+      "terminals": [
+        "D",
+        "G",
+        "S",
+        "B"
+      ],
+      "metadata": {
+        "W": 0.00001,
+        "L": 1e-6
+      },
+      "match_group_id": null
+    },
+    "RD": {
+      "id": "RD",
+      "kind": "resistor",
+      "terminals": [
+        "a",
+        "b"
+      ],
+      "metadata": {
+        "value": 23092.335313609237
+      },
+      "match_group_id": null
+    },
+    "M1_sig_s2": {
+      "id": "M1_sig_s2",
+      "kind": "nmos",
+      "terminals": [
+        "D",
+        "G",
+        "S",
+        "B"
+      ],
+      "metadata": {
+        "W": 0.00001,
+        "L": 1e-6
+      },
+      "match_group_id": null
+    },
+    "RD_load_s2": {
+      "id": "RD_load_s2",
+      "kind": "resistor",
+      "terminals": [
+        "a",
+        "b"
+      ],
+      "metadata": {
+        "value": 1356.3114438344005
+      },
+      "match_group_id": null
+    },
+    "M1_sig_s3": {
+      "id": "M1_sig_s3",
+      "kind": "nmos",
+      "terminals": [
+        "D",
+        "G",
+        "S",
+        "B"
+      ],
+      "metadata": {
+        "W": 0.00001,
+        "L": 1e-6
+      },
+      "match_group_id": null
+    },
+    "Rs": {
+      "id": "Rs",
+      "kind": "resistor",
+      "terminals": [
+        "a",
+        "b"
+      ],
+      "metadata": {
+        "value": 255883.63680014358
+      },
+      "match_group_id": null
+    }
+  },
+  "nodes": {
+    "VDD": {
+      "id": "VDD",
+      "role": "supply",
+      "voltage_dc": 5.0
+    },
+    "drain_sig_s2": {
+      "id": "drain_sig_s2",
+      "role": "internal",
+      "voltage_dc": 2.844597680040727
+    },
+    "GND": {
+      "id": "GND",
+      "role": "ground",
+      "voltage_dc": 0.0
+    },
+    "gate": {
+      "id": "gate",
+      "role": "input",
+      "voltage_dc": 0.9139781901912012
+    },
+    "drain": {
+      "id": "drain",
+      "role": "internal",
+      "voltage_dc": 3.0212415495211897
+    },
+    "source": {
+      "id": "source",
+      "role": "output",
+      "voltage_dc": null
+    }
+  }
+}
